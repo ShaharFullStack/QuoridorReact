@@ -61,7 +61,7 @@ export const LightingSystem: React.FC<LightingSystemProps> = ({ gameState }) => 
 
       {/* Hemisphere light for realistic sky/ground lighting */}
       <hemisphereLight
-        skyColor={0x87CEEB}
+        color={0x87CEEB}
         groundColor={0x1f2937}
         intensity={0.4}
       />

@@ -194,7 +194,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                             col: placeholder.col 
                         }}
                     >
-                        <planeGeometry args={geometry} />
+                        <planeGeometry args={geometry.slice(0, 4) as [number, number, number?, number?]} />
                         <primitive object={wallPlaceholderMaterial} />
                     </mesh>
                 );

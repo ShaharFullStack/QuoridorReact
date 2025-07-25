@@ -229,15 +229,16 @@ export const usePBRMaterial = (config: PBRMaterialConfig): THREE.MeshPhysicalMat
 export const useHighlightMaterial = (type: keyof typeof HIGHLIGHT_MATERIALS): THREE.MeshStandardMaterial => {
   const config = HIGHLIGHT_MATERIALS[type];
   
-  const material = new THREE.MeshStandardMaterial({
+  const materialParams: THREE.MeshStandardMaterialParameters = {
     color: config.color,
     emissive: config.emissive,
     emissiveIntensity: config.emissiveIntensity,
-    roughness: config.roughness || 0.5,
-    metalness: config.metalness || 0.5,
     transparent: config.transparent || false,
     opacity: config.opacity || 1
-  });
+  };
+  if ('roughness' in config && typeof config.roughness === 'number') materialParams.roughness = config.roughness;
+  if ('metalness' in config && typeof config.metalness === 'number') materialParams.metalness = config.metalness;
+  const material = new THREE.MeshStandardMaterial(materialParams);
   
   return material;
 };
@@ -609,15 +610,16 @@ export class MaterialsFactory {
   static createHighlightMaterial(type: keyof typeof HIGHLIGHT_MATERIALS): THREE.MeshStandardMaterial {
     const config = HIGHLIGHT_MATERIALS[type];
     
-    return new THREE.MeshStandardMaterial({
+    const materialParams: THREE.MeshStandardMaterialParameters = {
       color: config.color,
       emissive: config.emissive,
       emissiveIntensity: config.emissiveIntensity,
-      roughness: config.roughness || 0.5,
-      metalness: config.metalness || 0.5,
       transparent: config.transparent || false,
       opacity: config.opacity || 1
-    });
+    };
+    if ('roughness' in config && typeof config.roughness === 'number') materialParams.roughness = config.roughness;
+    if ('metalness' in config && typeof config.metalness === 'number') materialParams.metalness = config.metalness;
+    return new THREE.MeshStandardMaterial(materialParams);
   }
   
   static createWallPlaceholderMaterial(): THREE.MeshPhysicalMaterial {
