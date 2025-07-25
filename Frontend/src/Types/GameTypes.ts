@@ -27,6 +27,7 @@ export interface Player {
   position: PlayerPosition;
   wallsLeft: number;
   isAI: boolean;
+  isMoving: boolean; // true if pawn is currently moving, false if idle
 }
 
 // Wall Types
@@ -59,6 +60,14 @@ export interface GameState {
   winner: PlayerId | null;
   moveHistory: GameMove[];
   boardSize: number; // Progressive difficulty: 5, 7, 9, 11
+  
+  // Game mode state (matching original exactly)
+  gameMode: 'move' | 'wall'; // Current interaction mode
+  validMoves: PlayerPosition[]; // Valid moves for current player
+  
+  // Wall placement state (matching original exactly)
+  wallPlacementStage: 1 | 2; // Stage 1: select first segment, Stage 2: select second segment
+  firstWallSegment: WallPosition | null; // First selected wall segment
 }
 
 // Move Types

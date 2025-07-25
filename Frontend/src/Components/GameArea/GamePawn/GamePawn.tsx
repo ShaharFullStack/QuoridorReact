@@ -21,13 +21,68 @@ export const GamePawn: React.FC<GamePawnProps> = ({
     const meshRef = useRef<THREE.Group>(null);
     const glowRef = useRef<THREE.Mesh>(null);
     const [isHovered, setIsHovered] = useState(false);
+    
+    // Animation state for smooth movement (like original game)
+    const [animationState, setAnimationState] = useState({
+        isAnimating: false,
+        startPos: { x: 0, z: 0 },
+        endPos: { x: 0, z: 0 },
+        progress: 0,
+        duration: 0.8
+    });
 
-    // Calculate world position from grid position
-    const worldPosition: [number, number, number] = [
+    // Calculate world position from grid position (exactly like original)
+    const posToCoords = (pos: {x: number, y: number}) => ({ 
+        x: constants.BOARD_OFFSET + pos.x * constants.CELL_SIZE, 
+        z: constants.BOARD_OFFSET + pos.y * constants.CELL_SIZE 
+    });
+    
+    const baseWorldPosition: [number, number, number] = [
         constants.BOARD_OFFSET + player.position.x * constants.CELL_SIZE,
-        constants.CUBE_HEIGHT + 0.3,
+        constants.CUBE_HEIGHT + 1.5 - 1, // Exact original formula: CUBE_HEIGHT + 0.5
         constants.BOARD_OFFSET + player.position.y * constants.CELL_SIZE
     ];
+
+    // Track position changes to trigger movement animation
+    const prevPosition = useRef(player.position);
+    React.useEffect(() => {
+        if (prevPosition.current.x !== player.position.x || prevPosition.current.y !== player.position.y) {
+            // Start movement animation using original coordinate system
+            const startCoords = posToCoords(prevPosition.current);
+            const endCoords = posToCoords(player.position);
+            
+            setAnimationState({
+                isAnimating: true,
+                startPos: { x: startCoords.x, z: startCoords.z },
+                endPos: { x: endCoords.x, z: endCoords.z },
+                progress: 0,
+                duration: 0.8
+            });
+            
+            prevPosition.current = player.position;
+        }
+    }, [player.position, constants]);
+
+    // Calculate current position during animation
+    const worldPosition: [number, number, number] = React.useMemo(() => {
+        if (!animationState.isAnimating) {
+            return baseWorldPosition;
+        }
+        
+        // Smooth easing function (like original)
+        const easeProgress = animationState.progress < 0.5 
+            ? 2 * animationState.progress * animationState.progress 
+            : -1 + (4 - 2 * animationState.progress) * animationState.progress;
+            
+        const currentX = animationState.startPos.x + (animationState.endPos.x - animationState.startPos.x) * easeProgress;
+        const currentZ = animationState.startPos.z + (animationState.endPos.z - animationState.startPos.z) * easeProgress;
+        
+        // Add jumping arc (matching original exactly)
+        const arcHeight = Math.sin(animationState.progress * Math.PI) * 0.8;
+        const playerHeight = constants.CUBE_HEIGHT + 1.5 - 1 + arcHeight; // Original formula
+        
+        return [currentX, playerHeight, currentZ];
+    }, [animationState, baseWorldPosition, constants]);
 
     // Player colors
     const playerColors = {
@@ -46,15 +101,36 @@ export const GamePawn: React.FC<GamePawnProps> = ({
     const colors = playerColors[player.color];
 
     // Animation effects
-    useFrame((state) => {
+    useFrame((state, delta) => {
+        // Update movement animation progress
+        if (animationState.isAnimating) {
+            setAnimationState(prev => {
+                const newProgress = prev.progress + (delta / prev.duration);
+                
+                if (newProgress >= 1) {
+                    // Animation complete
+                    return {
+                        ...prev,
+                        isAnimating: false,
+                        progress: 1
+                    };
+                }
+                
+                return {
+                    ...prev,
+                    progress: newProgress
+                };
+            });
+        }
+
         if (meshRef.current) {
             const time = state.clock.elapsedTime;
             
-            // Gentle floating animation
-            meshRef.current.position.y = worldPosition[1] + Math.sin(time * 2 + player.id) * 0.1;
+            // Update position to current animated position
+            meshRef.current.position.set(worldPosition[0], worldPosition[1], worldPosition[2]);
             
-            // Current player pulse animation
-            if (isCurrentPlayer && gamePhase === 'playing') {
+            // Current player pulse animation (only when not moving)
+            if (isCurrentPlayer && gamePhase === 'playing' && !animationState.isAnimating) {
                 const pulse = Math.sin(time * 4) * 0.1 + 1;
                 meshRef.current.scale.setScalar(pulse);
             } else {
@@ -81,7 +157,7 @@ export const GamePawn: React.FC<GamePawnProps> = ({
     });
 
     return (
-        <group name={`player-${player.id}`} position={worldPosition}>
+        <group name={`player-${player.id}`}>
             {/* Glow effect ring */}
             <mesh
                 ref={glowRef}
@@ -117,20 +193,6 @@ export const GamePawn: React.FC<GamePawnProps> = ({
             >
                 {player.color === 'blue' ? <CornCharacter /> : <SmokingCharacter />}
             </group>
-
-            {/* Player indicator crown */}
-            {isCurrentPlayer && gamePhase === 'playing' && (
-                <mesh position={[0, 1.1, 0]} castShadow>
-                    <coneGeometry args={[0.2, 0.3, 8]} />
-                    <meshPhysicalMaterial
-                        color={0xffd700}
-                        emissive={0xffaa00}
-                        emissiveIntensity={0.5}
-                        roughness={0.1}
-                        metalness={0.8}
-                    />
-                </mesh>
-            )}
 
             {/* Player ID text */}
             <Text

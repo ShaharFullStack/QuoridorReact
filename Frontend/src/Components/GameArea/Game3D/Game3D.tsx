@@ -1,8 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo, memo } from 'react';
 import { GameState, GameSettings, PlayerId, PlayerPosition, WallPosition } from '../../../Types';
 import { GameLogic } from '../../../Utils/GameLogic';
 import { QuoridorScene } from '../QuoridorScene/QuoridorScene';
+import { LoadingSpinner } from '../../Common/LoadingSpinner/LoadingSpinner';
 import './Game3D.css';
+import './Game3D_buttons.css';
 
 interface Game3DProps {
     gameState: GameState;
@@ -11,13 +13,14 @@ interface Game3DProps {
     onGameEnd: (winner: PlayerId) => void;
 }
 
-const Game3D: React.FC<Game3DProps> = ({
+const Game3D: React.FC<Game3DProps> = memo(({
     gameState,
     gameSettings,
     onGameStateChange,
     onGameEnd
 }) => {
-    const [gameLogic] = useState(() => new GameLogic(gameState));
+    // Memoize GameLogic instance to prevent unnecessary recreations
+    const gameLogic = useMemo(() => new GameLogic(gameState), [gameState.boardSize]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +40,7 @@ const Game3D: React.FC<Game3DProps> = ({
 
     // Handle cell clicks (player movement)
     const handleCellClick = useCallback((x: number, y: number) => {
-        if (gameState.phase !== 'playing') return;
+        if (gameState.phase !== 'playing' || gameState.gameMode !== 'move') return;
         
         const currentPlayer = gameState.currentPlayer;
         const targetPosition: PlayerPosition = { x, y };
@@ -47,6 +50,11 @@ const Game3D: React.FC<Game3DProps> = ({
             
             if (validation.isValid) {
                 const newState = gameLogic.executePlayerMove(currentPlayer, targetPosition);
+                
+                // Update valid moves for next player (matching original exactly)
+                const nextGameLogic = new GameLogic(newState);
+                newState.validMoves = nextGameLogic.getValidMoves(newState.currentPlayer);
+                
                 onGameStateChange(newState);
                 
                 // Check for game end
@@ -63,22 +71,76 @@ const Game3D: React.FC<Game3DProps> = ({
         }
     }, [gameState, gameLogic, onGameStateChange, onGameEnd]);
 
-    // Handle wall placement clicks
+    // Handle wall placement clicks - Two-stage system matching original exactly
     const handleWallClick = useCallback((x: number, y: number, orientation: 'horizontal' | 'vertical') => {
-        if (gameState.phase !== 'playing') return;
+        if (gameState.phase !== 'playing' || gameState.gameMode !== 'wall') return;
         
         const currentPlayer = gameState.currentPlayer;
         const wallPosition: WallPosition = { x, y, orientation };
 
         try {
-            const validation = gameLogic.validateWallPlacement(currentPlayer, wallPosition);
-            
-            if (validation.isValid) {
-                const newState = gameLogic.executeWallPlacement(currentPlayer, wallPosition);
+            if (gameState.wallPlacementStage === 1) {
+                // Stage 1: Select first wall segment
+                const newState = {
+                    ...gameState,
+                    wallPlacementStage: 2 as const,
+                    firstWallSegment: wallPosition
+                };
                 onGameStateChange(newState);
-            } else {
-                console.log('Invalid wall placement:', validation.reason);
-                // TODO: Show user feedback for invalid wall placement
+            } else if (gameState.wallPlacementStage === 2 && gameState.firstWallSegment) {
+                // Stage 2: Validate and place complete wall
+                const firstSeg = gameState.firstWallSegment;
+                
+                // Check if segments form a valid wall (adjacent and same orientation)
+                const isValidPair = (
+                    firstSeg.orientation === wallPosition.orientation &&
+                    (
+                        (Math.abs(firstSeg.x - wallPosition.x) === 1 && firstSeg.y === wallPosition.y) ||
+                        (Math.abs(firstSeg.y - wallPosition.y) === 1 && firstSeg.x === wallPosition.x)
+                    )
+                );
+                
+                if (isValidPair) {
+                    // Create the complete wall at the minimum position
+                    const wallPos = {
+                        x: Math.min(firstSeg.x, wallPosition.x),
+                        y: Math.min(firstSeg.y, wallPosition.y),
+                        orientation: firstSeg.orientation
+                    };
+                    
+                    const validation = gameLogic.validateWallPlacement(currentPlayer, wallPos);
+                    
+                    if (validation.isValid) {
+                        const newState = gameLogic.executeWallPlacement(currentPlayer, wallPos);
+                        
+                        // Reset wall placement state and update valid moves
+                        newState.gameMode = 'move';
+                        newState.wallPlacementStage = 1;
+                        newState.firstWallSegment = null;
+                        
+                        const nextGameLogic = new GameLogic(newState);
+                        newState.validMoves = nextGameLogic.getValidMoves(newState.currentPlayer);
+                        
+                        onGameStateChange(newState);
+                    } else {
+                        console.log('Invalid wall placement:', validation.reason);
+                        // Reset wall placement on invalid placement
+                        const resetState = {
+                            ...gameState,
+                            wallPlacementStage: 1 as const,
+                            firstWallSegment: null as WallPosition | null
+                        };
+                        onGameStateChange(resetState);
+                    }
+                } else {
+                    console.log('Invalid wall segment pair - must be adjacent');
+                    // Reset to stage 1 with new first segment
+                    const newState = {
+                        ...gameState,
+                        firstWallSegment: wallPosition
+                    };
+                    onGameStateChange(newState);
+                }
             }
         } catch (error) {
             console.error('Wall placement failed:', error);
@@ -89,11 +151,12 @@ const Game3D: React.FC<Game3DProps> = ({
     return (
         <div className="Game3D">
             {isLoading && (
-                <div className="loading-overlay">
-                    <div className="loading-spinner"></div>
-                    <p>Loading 3D scene...</p>
-                    <p className="loading-note">Initializing React Three Fiber...</p>
-                </div>
+                <LoadingSpinner
+                    fullScreen
+                    size="large"
+                    text="Loading 3D scene..."
+                    variant="primary"
+                />
             )}
             
             {error && (
@@ -124,7 +187,10 @@ const Game3D: React.FC<Game3DProps> = ({
                     <div className="current-turn">
                         {gameState.phase === 'playing' && (
                             <>
-                                Player {gameState.currentPlayer}'s Turn
+                                Player {gameState.currentPlayer}'s Turn - {gameState.gameMode === 'move' ? 'Move' : 'Wall'} Mode
+                                {gameState.gameMode === 'wall' && gameState.wallPlacementStage === 2 && (
+                                    <span className="wall-stage-indicator"> (Select second segment)</span>
+                                )}
                                 <div className={`turn-indicator ${gameState.players[gameState.currentPlayer].color}`} />
                             </>
                         )}
@@ -137,10 +203,47 @@ const Game3D: React.FC<Game3DProps> = ({
                             </div>
                         )}
                     </div>
+                    
+                    {/* Game mode buttons matching original */}
+                    {gameState.phase === 'playing' && (
+                        <div className="game-mode-buttons">
+                            <button 
+                                className={`mode-btn ${gameState.gameMode === 'move' ? 'active' : ''}`}
+                                onClick={() => {
+                                    const newState = {
+                                        ...gameState,
+                                        gameMode: 'move' as const,
+                                        wallPlacementStage: 1 as const,
+                                        firstWallSegment: null as WallPosition | null
+                                    };
+                                    onGameStateChange(newState);
+                                }}
+                            >
+                                Move
+                            </button>
+                            <button 
+                                className={`mode-btn ${gameState.gameMode === 'wall' ? 'active' : ''}`}
+                                onClick={() => {
+                                    const newState = {
+                                        ...gameState,
+                                        gameMode: 'wall' as const,
+                                        wallPlacementStage: 1 as const,
+                                        firstWallSegment: null as WallPosition | null
+                                    };
+                                    onGameStateChange(newState);
+                                }}
+                                disabled={gameState.players[gameState.currentPlayer].wallsLeft <= 0}
+                            >
+                                Wall ({gameState.players[gameState.currentPlayer].wallsLeft} left)
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
     );
-};
+});
+
+Game3D.displayName = 'Game3D';
 
 export default Game3D;

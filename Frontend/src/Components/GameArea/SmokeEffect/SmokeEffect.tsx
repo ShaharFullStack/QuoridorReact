@@ -24,26 +24,38 @@ export const SmokeEffect: React.FC<SmokeEffectProps> = ({
   const particlesRef = useRef<THREE.Points>(null);
   const geometryRef = useRef<THREE.BufferGeometry>(null);
   
-  // Particle data for individual tracking
-  const particleData = useRef<Array<{
+  type ParticleData = {
     velocity: THREE.Vector3;
     life: number;
     maxLife: number;
-  }>>([]);
+  };
+
+  // Particle data for individual tracking
+  const particleData = useRef<ParticleData[]>([]);
 
   // Create smoke texture using canvas (matches original implementation)
   const smokeTexture = useMemo(() => {
+    // Guard against SSR environments
+    if (typeof document === 'undefined') {
+      return null;
+    }
+
     const canvas = document.createElement('canvas');
     canvas.width = 256;
     canvas.height = 256;
-    const context = canvas.getContext('2d')!;
+    const context = canvas.getContext('2d');
+
+    if (!context) {
+      console.error("SmokeEffect: Failed to get 2D context from canvas.");
+      return null;
+    }
     
     const gradient = context.createRadialGradient(
       canvas.width / 2, canvas.height / 2, 0,
       canvas.width / 2, canvas.height / 2, canvas.width / 2
     );
     
-    // Smoke color with transparency
+    // Use a default color if the provided one is invalid, to prevent crashes
     gradient.addColorStop(0, color);
     gradient.addColorStop(1, 'rgba(200, 200, 200, 0)');
     
@@ -55,6 +67,10 @@ export const SmokeEffect: React.FC<SmokeEffectProps> = ({
 
   // Create particle material with custom shader modifications
   const material = useMemo(() => {
+    if (!smokeTexture) {
+      return null;
+    }
+
     const mat = new THREE.PointsMaterial({
       size,
       map: smokeTexture,
@@ -83,35 +99,35 @@ export const SmokeEffect: React.FC<SmokeEffectProps> = ({
     return mat;
   }, [smokeTexture, size]);
 
-  // Initialize particle system
-  const initializeParticles = useMemo(() => {
-    const positions = new Float32Array(particleCount * 3);
-    const opacities = new Float32Array(particleCount);
-    
-    // Initialize particle data
-    particleData.current = [];
-    
+  // Initialize particle data and buffer attributes
+  // This effect runs only when particleCount or intensity changes
+  useEffect(() => {
+    const data: ParticleData[] = [];
     for (let i = 0; i < particleCount; i++) {
-      // Store individual particle data (velocity, lifespan)
-      particleData.current.push({
+      data.push({
         velocity: new THREE.Vector3(
           (Math.random() - 0.5) * 0.005, // Slow horizontal drift
           Math.random() * 0.3 + 0.02,   // Steady upward movement
           (Math.random() - 0.5) * 0.005  // Slow depth drift
         ),
         life: Math.random() * 3.0,       // Start at a random point in life
-        maxLife: Math.random() * 2.0 + 2.0, // Total lifespan of 3-5 seconds
+        maxLife: Math.random() * 2.0 + 2.0, // Total lifespan of 2-4 seconds
       });
+    }
+    particleData.current = data;
 
-      // Set initial positions and opacities
-      const p = i * 3;
-      positions[p] = (Math.random() - 0.5) * 0.2;
-      positions[p + 1] = (Math.random() - 0.5) * 0.2;
-      positions[p + 2] = (Math.random() - 0.5) * 0.2;
+    // Initialize buffer attributes
+    const positions = new Float32Array(particleCount * 3);
+    const opacities = new Float32Array(particleCount);
+    for (let i = 0; i < particleCount; i++) {
+      positions.set([(Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2], i * 3);
       opacities[i] = intensity;
     }
 
-    return { positions, opacities };
+    if (geometryRef.current) {
+      geometryRef.current.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometryRef.current.setAttribute('alpha', new THREE.BufferAttribute(opacities, 1));
+    }
   }, [particleCount, intensity]);
 
   // Disable raycasting for smoke particles to prevent interference with clicks
@@ -123,7 +139,12 @@ export const SmokeEffect: React.FC<SmokeEffectProps> = ({
 
   // Animation loop - update particles each frame
   useFrame((state, deltaTime) => {
-    if (!particlesRef.current || !geometryRef.current) return;
+    if (
+      !particlesRef.current || 
+      !geometryRef.current || 
+      !geometryRef.current.attributes.position ||
+      !geometryRef.current.attributes.alpha
+    ) return;
 
     const posAttr = geometryRef.current.attributes.position as THREE.BufferAttribute;
     const alphaAttr = geometryRef.current.attributes.alpha as THREE.BufferAttribute;
@@ -164,22 +185,11 @@ export const SmokeEffect: React.FC<SmokeEffectProps> = ({
     alphaAttr.needsUpdate = true;
   });
 
+  if (!material) return null;
+
   return (
     <points ref={particlesRef} position={position}>
-      <bufferGeometry ref={geometryRef}>
-        <bufferAttribute
-          attach="attributes-position"
-          array={initializeParticles.positions}
-          count={particleCount}
-          itemSize={3}
-        />
-        <bufferAttribute
-          attach="attributes-alpha"
-          array={initializeParticles.opacities}
-          count={particleCount}
-          itemSize={1}
-        />
-      </bufferGeometry>
+      <bufferGeometry ref={geometryRef} />
       <primitive object={material} />
     </points>
   );

@@ -1,0 +1,14 @@
+{
+  "devDependencies": {
+    "@types/express-fileupload": "^1.5.1",
+    "@types/node": "^24.1.0",
+    "@types/uuid": "^10.0.0"
+  },
+  "dependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "express-fileupload": "^1.5.2",
+    "jsonwebtoken": "^9.0.2",
+    "uploaded-file-saver": "^1.0.1",
+    "uuid": "^11.1.0"
+  }
+}

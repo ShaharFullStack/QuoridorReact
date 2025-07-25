@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { StatusCode } from "../3-models/enums";
 import { NotFoundError } from "../3-models/error-models";
 import { appConfig } from "../2-utils/app-config";
+import { logger } from "../2-utils/logger";
 
 class ErrorMiddleware {
 
@@ -9,6 +10,7 @@ class ErrorMiddleware {
 
         // Display error: 
         console.log(err);
+        logger.logError(err);
 
         // Extract status code (if no status, it means server crash): 
         const status = err.status || StatusCode.InternalServerError;

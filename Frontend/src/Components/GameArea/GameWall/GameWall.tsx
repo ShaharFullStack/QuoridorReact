@@ -23,10 +23,33 @@ export const GameWall: React.FC<GameWallProps> = ({
     React.useEffect(() => {
         const initMaterial = async () => {
             try {
-                const materials = await materialFactory.initializeMaterials({
-                    wallTexture: 'blackWhiteTile'
+                // Use the exact wall material configuration from original game
+                const loader = new THREE.TextureLoader();
+                
+                const albedo = loader.load('/assets/textures/black-white-tile-bl/black-white-tile_albedo.png');
+                const normal = loader.load('/assets/textures/black-white-tile-bl/black-white-tile_normal-ogl.png');
+                const roughness = loader.load('/assets/textures/black-white-tile-bl/black-white-tile_roughness.png');
+                
+                // Configure texture wrapping and repeat (matching original exactly)
+                [albedo, normal, roughness].forEach(tex => {
+                    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                    tex.repeat.set(0.33, 0.15); // Original wall texture repeat values
                 });
-                setWallMaterial(materials.wall);
+
+                const material = new THREE.MeshPhysicalMaterial({
+                    map: albedo,
+                    normalMap: normal,
+                    roughnessMap: roughness,
+                    roughness: 1.0,
+                    metalness: 0.5,
+                    color: 0xffffff,
+                    clearcoat: 0.7,
+                    clearcoatRoughness: 0.15,
+                    emissive: 0x0f172a,
+                    emissiveIntensity: 0.5,
+                });
+
+                setWallMaterial(material);
             } catch (error) {
                 console.warn('Failed to load wall material, using fallback:', error);
                 // Fallback material
@@ -45,10 +68,9 @@ export const GameWall: React.FC<GameWallProps> = ({
     const { position, dimensions, rotation } = React.useMemo(() => {
         const isHorizontal = wall.position.orientation === 'horizontal';
         
-        const worldX = constants.BOARD_OFFSET + wall.position.x * constants.CELL_SIZE + 
-                      (isHorizontal ? constants.CELL_SIZE : constants.CELL_SIZE / 2);
-        const worldZ = constants.BOARD_OFFSET + wall.position.y * constants.CELL_SIZE + 
-                      (isHorizontal ? constants.CELL_SIZE / 2 : constants.CELL_SIZE);
+        // Center wall between cells it blocks
+        const worldX = constants.BOARD_OFFSET + wall.position.x * constants.CELL_SIZE + constants.CELL_SIZE / 2;
+        const worldZ = constants.BOARD_OFFSET + wall.position.y * constants.CELL_SIZE + constants.CELL_SIZE / 2;
         
         const pos: [number, number, number] = [
             worldX,

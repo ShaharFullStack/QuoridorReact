@@ -31,26 +31,18 @@ export const QuoridorScene: React.FC<QuoridorSceneProps> = ({
         return [-10, 15, 15] as [number, number, number];
     }, []);
 
-    // Post-processing effects - matches original with minimal bloom to prevent blur
+    // Post-processing effects - matches original exactly with minimal bloom to prevent blur
     const PostProcessing = () => (
         <EffectComposer>
             <Bloom
                 blendFunction={BlendFunction.ADD}
-                intensity={0.2}  // Very subtle glow strength (reduced from original)
+                intensity={0.2}  // Original: bloomPass.strength = 0.2
                 width={Resolution.AUTO_SIZE}
                 height={Resolution.AUTO_SIZE}
                 kernelSize={KernelSize.SMALL}  // Small radius to keep things sharp
-                luminanceThreshold={0.4}  // Only very bright things will glow
-                luminanceSmoothing={0.4}  // Reduced from original blur settings
-                radius={0.25}  // Small radius for sharpness
-            />
-            <ToneMapping
-                adaptive={false}
-                resolution={256}
-                middleGrey={0.6}
-                maxLuminance={16.0}
-                averageLuminance={1.0}
-                adaptationRate={1.0}
+                luminanceThreshold={0.4}  // Original: bloomPass.threshold = 0.4
+                luminanceSmoothing={0.4}  // Matches original 0.4 setting
+                radius={0.25}  // Original: bloomPass.radius = 0.25
             />
         </EffectComposer>
     );
@@ -81,13 +73,13 @@ export const QuoridorScene: React.FC<QuoridorSceneProps> = ({
             <OrbitControls
                 target={[0, 2, 0]}
                 maxPolarAngle={Math.PI / 2 - 0.05}
-                minDistance={10}
-                maxDistance={40}
+                minDistance={8}  // Original: window.controls.minDistance = 8
+                maxDistance={30}  // Original: window.controls.maxDistance = 30
                 enableDamping={true}
                 dampingFactor={0.05}
                 enablePan={true}
                 rotateSpeed={0.5}
-                zoomSpeed={0.8}
+                zoomSpeed={0.8}  // Original: window.controls.zoomSpeed = 0.8
             />
 
             {/* Advanced Lighting System */}
@@ -100,6 +92,7 @@ export const QuoridorScene: React.FC<QuoridorSceneProps> = ({
                     boardSize={gameState.boardSize}
                     constants={constants}
                     gameSettings={gameSettings}
+                    gameState={gameState}
                     onCellClick={onCellClick}
                     onWallClick={onWallClick}
                 />

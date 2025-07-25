@@ -26,7 +26,16 @@ export const getGameConstants = (boardSize: number): GameConstants => ({
 });
 
 /**
- * Core game logic class
+ * Convert position to coordinates exactly like original
+ * Original: const posToCoords = (pos) => ({ x: BOARD_OFFSET + pos.col * CELL_SIZE, z: BOARD_OFFSET + pos.row * CELL_SIZE });
+ */
+export const posToCoords = (pos: {x: number, y: number}, constants: GameConstants) => ({
+    x: constants.BOARD_OFFSET + pos.x * constants.CELL_SIZE,
+    z: constants.BOARD_OFFSET + pos.y * constants.CELL_SIZE
+});
+
+/**
+ * Core game logic class - matches original exactly
  */
 export class GameLogic {
     private gameState: GameState;
@@ -38,7 +47,7 @@ export class GameLogic {
     }
 
     /**
-     * Check if a position is within board bounds
+     * Check if a position is within board bounds (using original coordinate system)
      */
     private isValidPosition(pos: PlayerPosition): boolean {
         return pos.x >= 0 && pos.x < this.constants.BOARD_SIZE && 
@@ -60,105 +69,89 @@ export class GameLogic {
 
     /**
      * Check if there's a wall blocking movement between two adjacent positions
+     * Matches original exactly: function isWallBetween(pos1, pos2)
      */
-    private isWallBlocking(from: PlayerPosition, to: PlayerPosition): boolean {
-        const dx = to.x - from.x;
-        const dy = to.y - from.y;
-
-        // Check for walls based on movement direction
+    private isWallBlocking(pos1: PlayerPosition, pos2: PlayerPosition): boolean {
+        // Convert walls to Sets like original game
+        const horizontalWalls = new Set<string>();
+        const verticalWalls = new Set<string>();
+        
         for (const wall of this.gameState.walls) {
-            const wp = wall.position;
-            
-            if (dx === 1) { // Moving right
-                if (wall.position.orientation === 'vertical' &&
-                    wp.x === from.x && 
-                    (wp.y === from.y || wp.y === from.y - 1)) {
-                    return true;
-                }
-            } else if (dx === -1) { // Moving left
-                if (wall.position.orientation === 'vertical' &&
-                    wp.x === from.x - 1 && 
-                    (wp.y === from.y || wp.y === from.y - 1)) {
-                    return true;
-                }
-            } else if (dy === 1) { // Moving down
-                if (wall.position.orientation === 'horizontal' &&
-                    wp.y === from.y && 
-                    (wp.x === from.x || wp.x === from.x - 1)) {
-                    return true;
-                }
-            } else if (dy === -1) { // Moving up
-                if (wall.position.orientation === 'horizontal' &&
-                    wp.y === from.y - 1 && 
-                    (wp.x === from.x || wp.x === from.x - 1)) {
-                    return true;
-                }
+            const key = `${wall.position.y}-${wall.position.x}`;
+            if (wall.position.orientation === 'horizontal') {
+                horizontalWalls.add(key);
+            } else {
+                verticalWalls.add(key);
             }
+        }
+
+        // Horizontal movement (same row)
+        if (pos1.y === pos2.y && Math.abs(pos1.x - pos2.x) === 1) {
+            const minCol = Math.min(pos1.x, pos2.x);
+            const row = pos1.y;
+            const wallKey = `${row}-${minCol}`;
+            return verticalWalls.has(wallKey);
+        } 
+        // Vertical movement (same column)
+        else if (pos1.x === pos2.x && Math.abs(pos1.y - pos2.y) === 1) {
+            let blocked = false;
+            if (pos1.y < pos2.y) {
+                blocked = horizontalWalls.has(`${pos1.y}-${pos1.x}`);
+            } else {
+                blocked = horizontalWalls.has(`${pos2.y}-${pos2.x}`);
+            }
+            return blocked;
         }
         return false;
     }
 
     /**
      * Get all valid moves for a player (including jumps)
+     * Matches original exactly: function calculateValidMoves()
      */
     public getValidMoves(playerId: PlayerId): PlayerPosition[] {
-        const player = this.gameState.players[playerId];
-        const validMoves: PlayerPosition[] = [];
+        const moves: PlayerPosition[] = [];
+        const pPos = this.gameState.players[playerId].position;
+        const oPos = playerId === 1 ? this.gameState.players[2].position : this.gameState.players[1].position;
+        
+        // Original directions: [{r: -1, c: 0}, {r: 1, c: 0}, {r: 0, c: -1}, {r: 0, c: 1}]
         const directions = [
-            { x: 0, y: 1 },  // Down
-            { x: 0, y: -1 }, // Up
-            { x: 1, y: 0 },  // Right
-            { x: -1, y: 0 }  // Left
+            {x: 0, y: -1}, // Up (r: -1, c: 0)
+            {x: 0, y: 1},  // Down (r: 1, c: 0) 
+            {x: -1, y: 0}, // Left (r: 0, c: -1)
+            {x: 1, y: 0}   // Right (r: 0, c: 1)
         ];
-
+        
         for (const dir of directions) {
-            const newPos = {
-                x: player.position.x + dir.x,
-                y: player.position.y + dir.y
-            };
-
-            // Check basic movement
-            if (this.isValidPosition(newPos) && 
-                !this.isWallBlocking(player.position, newPos)) {
-                
-                if (!this.isPositionOccupied(newPos)) {
-                    validMoves.push(newPos);
-                } else {
-                    // Check for jump over opponent
-                    const jumpPos = {
-                        x: newPos.x + dir.x,
-                        y: newPos.y + dir.y
-                    };
-
-                    if (this.isValidPosition(jumpPos) && 
-                        !this.isPositionOccupied(jumpPos) &&
-                        !this.isWallBlocking(newPos, jumpPos)) {
-                        validMoves.push(jumpPos);
+            const nextPos = { x: pPos.x + dir.x, y: pPos.y + dir.y };
+            
+            if (this.isValidPosition(nextPos) && !this.isWallBlocking(pPos, nextPos)) {
+                // Check if opponent is in the way
+                if (nextPos.x === oPos.x && nextPos.y === oPos.y) {
+                    // Try to jump over opponent
+                    const jumpPos = { x: nextPos.x + dir.x, y: nextPos.y + dir.y };
+                    if (this.isValidPosition(jumpPos) && !this.isWallBlocking(nextPos, jumpPos)) {
+                        moves.push(jumpPos);
                     } else {
-                        // Check diagonal moves when jump is blocked
+                        // Jump blocked, try diagonal moves
                         const diagonals = [
-                            { x: dir.y, y: dir.x },  // Perpendicular directions
-                            { x: -dir.y, y: -dir.x }
+                            { x: dir.y, y: dir.x },   // Perpendicular
+                            { x: -dir.y, y: -dir.x }  // Opposite perpendicular
                         ];
-
-                        for (const diagDir of diagonals) {
-                            const diagPos = {
-                                x: newPos.x + diagDir.x,
-                                y: newPos.y + diagDir.y
-                            };
-
-                            if (this.isValidPosition(diagPos) && 
-                                !this.isPositionOccupied(diagPos) &&
-                                !this.isWallBlocking(newPos, diagPos)) {
-                                validMoves.push(diagPos);
+                        for (const diag of diagonals) {
+                            const diagPos = { x: nextPos.x + diag.x, y: nextPos.y + diag.y };
+                            if (this.isValidPosition(diagPos) && !this.isWallBlocking(nextPos, diagPos)) {
+                                moves.push(diagPos);
                             }
                         }
                     }
+                } else {
+                    moves.push(nextPos);
                 }
             }
         }
-
-        return validMoves;
+        
+        return moves.filter(m => m && m.y >= 0 && m.y < this.constants.BOARD_SIZE && m.x >= 0 && m.x < this.constants.BOARD_SIZE);
     }
 
     /**
@@ -486,7 +479,7 @@ export const createInitialGameState = (
 ): GameState => {
     const constants = getGameConstants(boardSize);
     
-    return {
+    const initialState: GameState = {
         phase: 'waiting',
         mode: gameMode,
         aiLevel,
@@ -496,26 +489,42 @@ export const createInitialGameState = (
                 id: 1,
                 color: 'blue',
                 position: { 
-                    x: Math.floor(boardSize / 2), 
-                    y: boardSize - 1 
+                    x: 4,  // Original: col: 4 
+                    y: 8   // Original: row: 8 (bottom row)
                 },
                 wallsLeft: constants.WALLS_PER_PLAYER,
-                isAI: false
+                isAI: false,
+                isMoving: false
             },
             2: {
                 id: 2,
                 color: 'red',
                 position: { 
-                    x: Math.floor(boardSize / 2), 
-                    y: 0 
+                    x: 4,  // Original: col: 4
+                    y: 0   // Original: row: 0 (top row)
                 },
                 wallsLeft: constants.WALLS_PER_PLAYER,
-                isAI: gameMode === 'pvc'
+                isAI: gameMode === 'pvc',
+                isMoving: false
             }
         },
         walls: [],
         winner: null,
         moveHistory: [],
-        boardSize
+        boardSize,
+        
+        // Game mode state (matching original exactly)
+        gameMode: 'move',
+        validMoves: [],
+        
+        // Wall placement state (matching original exactly)
+        wallPlacementStage: 1,
+        firstWallSegment: null
     };
+    
+    // Calculate initial valid moves
+    const gameLogic = new GameLogic(initialState);
+    initialState.validMoves = gameLogic.getValidMoves(1);
+    
+    return initialState;
 };

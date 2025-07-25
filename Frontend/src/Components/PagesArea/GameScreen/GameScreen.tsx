@@ -23,7 +23,7 @@ export function GameScreen(): JSX.Element {
             return;
         }
 
-        // Initialize game state
+        // Initialize game state - exact match to original game
         const initialGameState: GameState = {
             phase: 'playing',
             mode: gameMode === 'ranked' ? 'pvc' : 'pvp',
@@ -34,27 +34,37 @@ export function GameScreen(): JSX.Element {
                     id: 1,
                     color: 'blue',
                     position: { 
-                        x: Math.floor(gameSettings.boardSize / 2), 
-                        y: gameSettings.boardSize - 1 
+                        x: 4,  // Original: col: 4 
+                        y: 8   // Original: row: 8 (bottom row)
                     },
-                    wallsLeft: Math.floor(gameSettings.boardSize * 1.1), // Dynamic walls based on board size
-                    isAI: false
+                    wallsLeft: 10, // Original: window.WALLS_PER_PLAYER = 10
+                    isAI: false,
+                    isMoving: false
                 },
                 2: {
                     id: 2,
                     color: 'red',
                     position: { 
-                        x: Math.floor(gameSettings.boardSize / 2), 
-                        y: 0 
+                        x: 4,  // Original: col: 4
+                        y: 0   // Original: row: 0 (top row)
                     },
-                    wallsLeft: Math.floor(gameSettings.boardSize * 1.1),
-                    isAI: gameMode === 'ranked'
+                    wallsLeft: 10, // Original: window.WALLS_PER_PLAYER = 10
+                    isAI: gameMode === 'ranked',
+                    isMoving: false
                 }
             },
             walls: [],
             winner: null,
             moveHistory: [],
-            boardSize: gameSettings.boardSize
+            boardSize: gameSettings.boardSize,
+            
+            // Game mode state (matching original exactly)
+            gameMode: 'move', // Start in move mode
+            validMoves: [], // Will be calculated
+            
+            // Wall placement state (matching original exactly)
+            wallPlacementStage: 1,
+            firstWallSegment: null
         };
 
         setGameState(initialGameState);
@@ -99,7 +109,7 @@ export function GameScreen(): JSX.Element {
                 
                 <div className="game-controls">
                     <button 
-                        className="back-button"
+                        className="btn btn-outline"
                         onClick={handleBackToDashboard}
                     >
                         ← Back to Dashboard
@@ -172,10 +182,10 @@ export function GameScreen(): JSX.Element {
                         <h2>Game Over!</h2>
                         <p>Player {gameState.winner} Wins!</p>
                         <div className="game-over-buttons">
-                            <button onClick={handleBackToDashboard}>
+                            <button className="btn btn-outline" onClick={handleBackToDashboard}>
                                 Back to Dashboard
                             </button>
-                            <button onClick={() => window.location.reload()}>
+                            <button className="btn btn-primary" onClick={() => window.location.reload()}>
                                 Play Again
                             </button>
                         </div>

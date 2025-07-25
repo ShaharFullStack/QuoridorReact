@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '../../Common/Button/Button';
 import "./Home.css";
 
 export function Home(): JSX.Element {
@@ -9,7 +10,7 @@ export function Home(): JSX.Element {
         <div className="Home">
             <div className="hero-section">
                 <div className="hero-content">
-                    <h1>Quoridor 3D</h1>
+                    <h1 className="hero-title">Quoridor 3D</h1>
                     <p className="hero-subtitle">
                         Experience the classic strategy game in stunning 3D graphics
                     </p>
@@ -20,14 +21,21 @@ export function Home(): JSX.Element {
                     </p>
                     
                     <div className="hero-buttons">
-                        <button 
-                            className="cta-button primary"
+                        <Button 
+                            variant="primary"
+                            size="large"
                             onClick={() => navigate('/login')}
+                            aria-describedby="start-playing-desc"
                         >
                             Start Playing
-                        </button>
-                        <button 
-                            className="cta-button secondary"
+                        </Button>
+                        <span id="start-playing-desc" className="sr-only">
+                            Register or login to start playing Quoridor 3D
+                        </span>
+                        
+                        <Button 
+                            variant="outline"
+                            size="large"
                             onClick={() => navigate('/game', { 
                                 state: { 
                                     gameSettings: { 
@@ -42,9 +50,13 @@ export function Home(): JSX.Element {
                                     gameMode: 'quick' 
                                 } 
                             })}
+                            aria-describedby="quick-demo-desc"
                         >
                             Quick Demo
-                        </button>
+                        </Button>
+                        <span id="quick-demo-desc" className="sr-only">
+                            Try the game immediately without registration
+                        </span>
                     </div>
                 </div>
                 
@@ -72,63 +84,37 @@ export function Home(): JSX.Element {
                     </div>
                 </div>
             </div>
-
-            <div className="features-section">
-                <div className="features-container">
-                    <h2>Game Features</h2>
-                    <div className="features-grid">
-                        <div className="feature-card">
-                            <div className="feature-icon">🎮</div>
-                            <h3>Multiple Game Modes</h3>
-                            <p>Play against AI or challenge other players in various difficulty levels</p>
-                        </div>
-                        <div className="feature-card">
-                            <div className="feature-icon">🏆</div>
-                            <h3>Progressive Difficulty</h3>
-                            <p>Start with 5x5 boards and work your way up to expert 11x11 challenges</p>
-                        </div>
-                        <div className="feature-card">
-                            <div className="feature-icon">🎨</div>
-                            <h3>Customizable Themes</h3>
-                            <p>Unlock beautiful textures and skins to personalize your game experience</p>
-                        </div>
-                        <div className="feature-card">
-                            <div className="feature-icon">💎</div>
-                            <h3>Reward System</h3>
-                            <p>Earn coins and diamonds through gameplay and complete daily missions</p>
-                        </div>
+            <section className="how-to-play-section" aria-labelledby="how-to-play-title">
+                <div className="how-to-container container">
+                    <h2 id="how-to-play-title" className="section-title">How to Play</h2>
+                    <div className="rules-grid grid grid-cols-3">
+                        <article className="rule-item card" tabIndex={0}>
+                            <div className="rule-content">
+                                <h3 className="rule-title">Move Your Player</h3>
+                                <p className="rule-description">
+                                    Click on adjacent squares to move your player towards the opposite side of the board
+                                </p>
+                            </div>
+                        </article>
+                        <article className="rule-item card" tabIndex={0}>
+                            <div className="rule-content">
+                                <h3 className="rule-title">Place Walls</h3>
+                                <p className="rule-description">
+                                    Strategically place walls to block your opponent's path while keeping your own route open
+                                </p>
+                            </div>
+                        </article>
+                        <article className="rule-item card" tabIndex={0}>
+                            <div className="rule-content">
+                                <h3 className="rule-title">Win the Game</h3>
+                                <p className="rule-description">
+                                    Be the first player to reach the opposite side of the board to claim victory
+                                </p>
+                            </div>
+                        </article>
                     </div>
                 </div>
-            </div>
-
-            <div className="how-to-play-section">
-                <div className="how-to-container">
-                    <h2>How to Play</h2>
-                    <div className="rules-grid">
-                        <div className="rule-item">
-                            <div className="rule-number">1</div>
-                            <div className="rule-content">
-                                <h4>Move Your Player</h4>
-                                <p>Click on adjacent squares to move your player towards the opposite side of the board</p>
-                            </div>
-                        </div>
-                        <div className="rule-item">
-                            <div className="rule-number">2</div>
-                            <div className="rule-content">
-                                <h4>Place Walls</h4>
-                                <p>Strategically place walls to block your opponent's path while keeping your own route open</p>
-                            </div>
-                        </div>
-                        <div className="rule-item">
-                            <div className="rule-number">3</div>
-                            <div className="rule-content">
-                                <h4>Win the Game</h4>
-                                <p>Be the first player to reach the opposite side of the board to claim victory</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            </section>
         </div>
     );
 }

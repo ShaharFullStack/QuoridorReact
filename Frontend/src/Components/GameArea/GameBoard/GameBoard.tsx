@@ -1,14 +1,13 @@
-import React, { useRef, useMemo, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Text } from '@react-three/drei';
+import React, { useRef, useMemo } from 'react';
 import * as THREE from 'three';
-import { GameConstants, GameSettings } from '../../../Types';
+import { GameConstants, GameSettings, GameState, PlayerPosition, WallPosition } from '../../../Types';
 import { usePBRMaterial, MATERIAL_CONFIGS, useHighlightMaterial, useWallPlaceholderMaterial } from '../../../Utils/MaterialsSystem';
 
 interface GameBoardProps {
     boardSize: number;
     constants: GameConstants;
     gameSettings: GameSettings;
+    gameState: GameState; // Added to access visual indicator state
     onCellClick?: (x: number, y: number) => void;
     onWallClick?: (x: number, y: number, orientation: 'horizontal' | 'vertical') => void;
 }
@@ -17,12 +16,12 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     boardSize,
     constants,
     gameSettings,
+    gameState,
     onCellClick,
     onWallClick
 }) => {
     const groupRef = useRef<THREE.Group>(null);
-    const [hoveredCell, setHoveredCell] = useState<{ x: number; y: number } | null>(null);
-    const [hoveredWall, setHoveredWall] = useState<{ x: number; y: number; orientation: 'horizontal' | 'vertical' } | null>(null);
+    // Removed old hover state - now using game state based indicators
 
     // Load sophisticated PBR materials (matching original exactly)
     const boardMaterial = usePBRMaterial(MATERIAL_CONFIGS.board);
@@ -30,6 +29,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     const groundMaterial = usePBRMaterial(MATERIAL_CONFIGS.ground);
     const highlightMoveMaterial = useHighlightMaterial('highlightMove');
     const wallPlaceholderMaterial = useWallPlaceholderMaterial();
+    const highlightFirstWallMaterial = useHighlightMaterial('highlightFirstWall');
+    const highlightSecondWallMaterial = useHighlightMaterial('highlightSecondWall');
 
     // Generate board cells with exact positioning from original
     const boardCells = useMemo(() => {
@@ -127,48 +128,111 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
             {/* Board cells with sophisticated materials */}
             {boardCells.map((cell) => {
-                const isHovered = hoveredCell?.x === cell.col && hoveredCell?.y === cell.row;
-                const material = cell.isGoal ? goalMaterial : boardMaterial;
+                // Determine material based on game mode and valid moves (matching original exactly)
+                let material: THREE.Material = cell.isGoal ? goalMaterial : boardMaterial;
+                
+                // Highlight valid moves when in move mode (from original updateScene)
+                if (gameState.gameMode === 'move') {
+                    const isValidMove = gameState.validMoves.some(move => 
+                        move.x === cell.col && move.y === cell.row
+                    );
+                    if (isValidMove) {
+                        material = highlightMoveMaterial;
+                    }
+                }
                 
                 return (
-                    <group key={cell.key}>
-                        <mesh
-                            position={[cell.coords.x, constants.CUBE_HEIGHT / 2 - 1, cell.coords.z]}
-                            rotation={[0, cell.rotation, 0]}
-                            castShadow
-                            receiveShadow
-                            onClick={() => handleCellClick(cell.row, cell.col)}
-                            onPointerEnter={() => setHoveredCell({ x: cell.col, y: cell.row })}
-                            onPointerLeave={() => setHoveredCell(null)}
-                            userData={{ type: 'cell', row: cell.row, col: cell.col }}
-                        >
-                            <boxGeometry args={[
-                                constants.CELL_SIZE - constants.CUBE_GAP,
-                                constants.CUBE_HEIGHT,
-                                constants.CELL_SIZE - constants.CUBE_GAP
-                            ]} />
-                            <primitive object={material} />
-                        </mesh>
-
-                        {/* Hover effect */}
-                        {isHovered && (
-                            <mesh
-                                position={[cell.coords.x, constants.CUBE_HEIGHT + 0.1, cell.coords.z]}
-                                rotation={[-Math.PI / 2, 0, 0]}
-                            >
-                                <ringGeometry args={[0.8, 1.0, 16]} />
-                                <primitive object={highlightMoveMaterial} />
-                            </mesh>
-                        )}
-                    </group>
+                    <mesh
+                        key={cell.key}
+                        position={[cell.coords.x, constants.CUBE_HEIGHT / 2 - 1, cell.coords.z]}
+                        rotation={[0, cell.rotation, 0]}
+                        castShadow
+                        receiveShadow
+                        onClick={() => handleCellClick(cell.row, cell.col)}
+                        userData={{ type: 'cell', row: cell.row, col: cell.col }}
+                    >
+                        <boxGeometry args={[
+                            constants.CELL_SIZE - constants.CUBE_GAP,
+                            constants.CUBE_HEIGHT,
+                            constants.CELL_SIZE - constants.CUBE_GAP
+                        ]} />
+                        <primitive object={material} />
+                    </mesh>
                 );
             })}
 
-            {/* Wall placeholders (invisible until hover) - matches original system */}
+            {/* Wall placeholders with exact original highlighting system */}
             {wallPlaceholders.map((placeholder) => {
-                const isHovered = hoveredWall?.x === placeholder.col && 
-                                 hoveredWall?.y === placeholder.row && 
-                                 hoveredWall?.orientation === placeholder.type;
+                // Determine visibility and material based on game mode (matching original updateScene)
+                let isVisible = false;
+                let material: THREE.Material = wallPlaceholderMaterial;
+                
+                if (gameState.gameMode === 'wall') {
+                    if (gameState.wallPlacementStage === 1) {
+                        // Stage 1: Show available wall placeholders (from original updateScene lines 107-126)
+                        const existingWalls = gameState.walls;
+                        let canPlace = true;
+                        
+                        if (placeholder.type === 'horizontal') {
+                            // Check if horizontal wall already exists
+                            const seg1Key = `${placeholder.row}-${placeholder.col}`;
+                            const seg2Key = `${placeholder.row}-${placeholder.col + 1}`;
+                            canPlace = !existingWalls.some(wall => 
+                                wall.position.orientation === 'horizontal' &&
+                                (`${wall.position.y}-${wall.position.x}` === seg1Key ||
+                                 `${wall.position.y}-${wall.position.x}` === seg2Key)
+                            );
+                        } else {
+                            // Check if vertical wall already exists
+                            const seg1Key = `${placeholder.row}-${placeholder.col}`;
+                            const seg2Key = `${placeholder.row + 1}-${placeholder.col}`;
+                            canPlace = !existingWalls.some(wall => 
+                                wall.position.orientation === 'vertical' &&
+                                (`${wall.position.y}-${wall.position.x}` === seg1Key ||
+                                 `${wall.position.y}-${wall.position.x}` === seg2Key)
+                            );
+                        }
+                        
+                        if (canPlace) {
+                            isVisible = true;
+                            material = wallPlaceholderMaterial; // Blue placeholder
+                        }
+                    } else if (gameState.wallPlacementStage === 2 && gameState.firstWallSegment) {
+                        // Stage 2: Show first wall segment and possible second segments (lines 127-150)
+                        const firstSeg = gameState.firstWallSegment;
+                        
+                        // Highlight the first selected wall segment with orange
+                        if (firstSeg.orientation === placeholder.type &&
+                            firstSeg.x === placeholder.col &&
+                            firstSeg.y === placeholder.row) {
+                            isVisible = true;
+                            material = highlightFirstWallMaterial; // Orange
+                        }
+                        // Show possible second segments with green highlighting
+                        else if (firstSeg.orientation === placeholder.type) {
+                            let isPossibleSecond = false;
+                            
+                            if (placeholder.type === 'horizontal') {
+                                // Adjacent horizontal segments
+                                isPossibleSecond = (
+                                    (firstSeg.y === placeholder.row && Math.abs(firstSeg.x - placeholder.col) === 1) ||
+                                    (firstSeg.x === placeholder.col && Math.abs(firstSeg.y - placeholder.row) === 1)
+                                );
+                            } else {
+                                // Adjacent vertical segments
+                                isPossibleSecond = (
+                                    (firstSeg.y === placeholder.row && Math.abs(firstSeg.x - placeholder.col) === 1) ||
+                                    (firstSeg.x === placeholder.col && Math.abs(firstSeg.y - placeholder.row) === 1)
+                                );
+                            }
+                            
+                            if (isPossibleSecond) {
+                                isVisible = true;
+                                material = highlightSecondWallMaterial; // Green
+                            }
+                        }
+                    }
+                }
                 
                 const geometry = placeholder.type === 'horizontal' 
                     ? [constants.CELL_SIZE * 2, constants.WALL_WIDTH * 4] 
@@ -179,14 +243,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                         key={placeholder.key}
                         position={placeholder.position}
                         rotation={[-Math.PI / 2, 0, 0]}
-                        visible={isHovered}
+                        visible={isVisible}
                         onClick={() => handleWallClick(placeholder.row, placeholder.col, placeholder.type)}
-                        onPointerEnter={() => setHoveredWall({ 
-                            x: placeholder.col, 
-                            y: placeholder.row, 
-                            orientation: placeholder.type 
-                        })}
-                        onPointerLeave={() => setHoveredWall(null)}
                         userData={{ 
                             type: `${placeholder.type}_wall_placeholder`, 
                             wallType: placeholder.type,
@@ -195,7 +253,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                         }}
                     >
                         <planeGeometry args={geometry.slice(0, 4) as [number, number, number?, number?]} />
-                        <primitive object={wallPlaceholderMaterial} />
+                        <primitive object={material} />
                     </mesh>
                 );
             })}

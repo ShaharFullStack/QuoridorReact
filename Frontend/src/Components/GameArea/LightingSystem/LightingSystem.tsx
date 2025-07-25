@@ -17,23 +17,29 @@ export const LightingSystem: React.FC<LightingSystemProps> = ({ gameState }) => 
   // Sky background color
   const skyColor = useMemo(() => new THREE.Color(0x87ceeb), []);
 
-  // Player spotlight positions (dynamic based on player positions)
-  const player1SpotlightTarget = useMemo(() => {
+  // Player spotlight positions (exactly like original with offsets)
+  const player1SpotlightData = useMemo(() => {
     const player1 = gameState.players[1];
-    return [
-      constants.BOARD_OFFSET + player1.position.x * constants.CELL_SIZE,
-      0,
-      constants.BOARD_OFFSET + player1.position.y * constants.CELL_SIZE
-    ] as [number, number, number];
+    const targetX = constants.BOARD_OFFSET + player1.position.x * constants.CELL_SIZE;
+    const targetZ = constants.BOARD_OFFSET + player1.position.y * constants.CELL_SIZE;
+    const playerHeight = constants.CUBE_HEIGHT + 1.5 - 1; // Original formula
+    
+    return {
+      position: [targetX + 2, 15, targetZ + 4] as [number, number, number], // Original offset
+      target: [targetX, playerHeight, targetZ] as [number, number, number]
+    };
   }, [gameState.players, constants]);
 
-  const player2SpotlightTarget = useMemo(() => {
+  const player2SpotlightData = useMemo(() => {
     const player2 = gameState.players[2];
-    return [
-      constants.BOARD_OFFSET + player2.position.x * constants.CELL_SIZE,
-      0,
-      constants.BOARD_OFFSET + player2.position.y * constants.CELL_SIZE
-    ] as [number, number, number];
+    const targetX = constants.BOARD_OFFSET + player2.position.x * constants.CELL_SIZE;
+    const targetZ = constants.BOARD_OFFSET + player2.position.y * constants.CELL_SIZE;
+    const playerHeight = constants.CUBE_HEIGHT + 1.5 - 1; // Original formula
+    
+    return {
+      position: [targetX - 2, 15, targetZ - 4] as [number, number, number], // Original offset
+      target: [targetX, playerHeight, targetZ] as [number, number, number]
+    };
   }, [gameState.players, constants]);
 
   return (
@@ -73,10 +79,10 @@ export const LightingSystem: React.FC<LightingSystemProps> = ({ gameState }) => 
         color={0xaabbcc}
       />
 
-      {/* Player 1 spotlight (Blue) - follows player position */}
+      {/* Player 1 spotlight (Blue) - follows player position with exact original positioning */}
       <spotLight
-        position={[0, 15, 0]}
-        target-position={player1SpotlightTarget}
+        position={player1SpotlightData.position}
+        target-position={player1SpotlightData.target}
         intensity={2.5}
         color={0x6699ff}
         distance={20}
@@ -86,10 +92,10 @@ export const LightingSystem: React.FC<LightingSystemProps> = ({ gameState }) => 
         castShadow
       />
 
-      {/* Player 2 spotlight (Pink/Red) - follows player position */}
+      {/* Player 2 spotlight (Pink/Red) - follows player position with exact original positioning */}
       <spotLight
-        position={[0, 15, 0]}
-        target-position={player2SpotlightTarget}
+        position={player2SpotlightData.position}
+        target-position={player2SpotlightData.target}
         intensity={2.5}
         color={0xff6699}
         distance={20}

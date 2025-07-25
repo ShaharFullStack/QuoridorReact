@@ -1,0 +1,76 @@
+/* Game mode buttons matching original UI */
+.game-mode-buttons {
+    position: absolute;
+    top: 5rem;
+    left: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    pointer-events: all;
+}
+
+.mode-btn {
+    padding: 0.8rem 1.2rem;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid #3498db;
+    border-radius: 8px;
+    color: #2c3e50;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
+.mode-btn:hover {
+    background: rgba(52, 152, 219, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.mode-btn.active {
+    background: #3498db;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+}
+
+.mode-btn:disabled {
+    background: rgba(189, 195, 199, 0.7);
+    border-color: #bdc3c7;
+    color: #7f8c8d;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.mode-btn:disabled:hover {
+    transform: none;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
+.wall-stage-indicator {
+    color: #e67e22;
+    font-style: italic;
+    font-size: 0.9em;
+}
+
+/* Mobile responsive for game mode buttons */
+@media (max-width: 768px) {
+    .game-mode-buttons {
+        top: 4rem;
+        left: 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .game-mode-buttons {
+        top: 3.5rem;
+        left: 0.5rem;
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+    
+    .mode-btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.8rem;
+    }
+}

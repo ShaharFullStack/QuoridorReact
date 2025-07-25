@@ -1,0 +1,129 @@
+/* For Guest Users */
+.UserMenu-guest {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.guest-link {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.guest-link.login {
+    color: #fff;
+    background-color: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.guest-link.login:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.guest-link.register {
+    color: #1e40af; /* Dark blue from header */
+    background-color: #fff;
+}
+.guest-link.register:hover {
+    opacity: 0.9;
+}
+
+
+/* For Logged-in Users */
+.UserMenu {
+    position: relative;
+}
+
+.UserMenu-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50px; /* Pill shape */
+    padding: 0.25rem 0.75rem 0.25rem 0.25rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    color: #fff;
+}
+
+.UserMenu-trigger:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.UserMenu-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #4f46e5; /* A vibrant purple/blue */
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.UserMenu-name {
+    font-weight: 500;
+}
+
+.caret {
+    transition: transform 0.2s ease;
+}
+.caret.open {
+    transform: rotate(180deg);
+}
+
+.UserMenu-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 220px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    z-index: 1010;
+}
+
+.dropdown-header {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+}
+
+.dropdown-name {
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+}
+
+.dropdown-email {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+}
+
+.dropdown-item {
+    display: block;
+    padding: 0.75rem 1rem;
+    color: #374151;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #f3f4f6;
+}
+
+.dropdown-item.logout {
+    color: #ef4444; /* Red for destructive action */
+}
+
+.dropdown-item.logout:hover {
+    background-color: #fee2e2;
+}

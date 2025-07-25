@@ -1,0 +1,103 @@
+.error-boundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-xl);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+}
+
+.error-boundary-content {
+  text-align: center;
+  max-width: 600px;
+  background: var(--bg-primary);
+  padding: var(--space-2xl);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border-color);
+}
+
+.error-icon {
+  font-size: 4rem;
+  margin-bottom: var(--space-lg);
+}
+
+.error-boundary-content h2 {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-md);
+}
+
+.error-boundary-content p {
+  font-size: var(--font-size-lg);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xl);
+  line-height: 1.6;
+}
+
+.error-details {
+  text-align: left;
+  margin: var(--space-lg) 0;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.error-details summary {
+  padding: var(--space-md);
+  background: var(--bg-tertiary);
+  cursor: pointer;
+  font-weight: 500;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.error-details summary:hover {
+  background: var(--bg-secondary);
+}
+
+.error-stack {
+  padding: var(--space-md);
+  background: var(--bg-primary);
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.error-actions {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.error-actions .btn {
+  min-width: 120px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .error-boundary {
+    padding: var(--space-lg);
+  }
+  
+  .error-boundary-content {
+    padding: var(--space-xl);
+  }
+  
+  .error-boundary-content h2 {
+    font-size: var(--font-size-2xl);
+  }
+  
+  .error-actions {
+    flex-direction: column;
+  }
+  
+  .error-actions .btn {
+    width: 100%;
+  }
+}
