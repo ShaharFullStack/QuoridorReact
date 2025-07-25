@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { CornCharacter, SmokingCharacter } from './GameCharacters';
 import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
@@ -17,7 +18,7 @@ export const GamePawn: React.FC<GamePawnProps> = ({
     isCurrentPlayer,
     gamePhase
 }) => {
-    const meshRef = useRef<THREE.Mesh>(null);
+    const meshRef = useRef<THREE.Group>(null);
     const glowRef = useRef<THREE.Mesh>(null);
     const [isHovered, setIsHovered] = useState(false);
 
@@ -106,39 +107,16 @@ export const GamePawn: React.FC<GamePawnProps> = ({
                 />
             </mesh>
 
-            {/* Main pawn body */}
-            <mesh
+            {/* GLTF Pawn Model */}
+            <group
                 ref={meshRef}
                 castShadow
                 receiveShadow
                 onPointerEnter={() => setIsHovered(true)}
                 onPointerLeave={() => setIsHovered(false)}
             >
-                <cylinderGeometry args={[0.4, 0.5, 0.8, 16]} />
-                <meshPhysicalMaterial
-                    color={colors.main}
-                    emissive={colors.emissive}
-                    emissiveIntensity={isCurrentPlayer ? 0.3 : 0.1}
-                    roughness={0.3}
-                    metalness={0.1}
-                    clearcoat={0.8}
-                    clearcoatRoughness={0.2}
-                />
-            </mesh>
-
-            {/* Pawn head */}
-            <mesh position={[0, 0.6, 0]} castShadow receiveShadow>
-                <sphereGeometry args={[0.35, 16, 16]} />
-                <meshPhysicalMaterial
-                    color={colors.main}
-                    emissive={colors.emissive}
-                    emissiveIntensity={isCurrentPlayer ? 0.3 : 0.1}
-                    roughness={0.2}
-                    metalness={0.1}
-                    clearcoat={0.9}
-                    clearcoatRoughness={0.1}
-                />
-            </mesh>
+                {player.color === 'blue' ? <CornCharacter /> : <SmokingCharacter />}
+            </group>
 
             {/* Player indicator crown */}
             {isCurrentPlayer && gamePhase === 'playing' && (
