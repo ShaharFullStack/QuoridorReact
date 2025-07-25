@@ -1,12 +1,12 @@
 import cors from "cors";
 import express, { Express } from "express";
 import { appConfig } from "./2-utils/app-config";
-import { dataController } from "./5-controllers/data-controller";
+import { productController } from "./5-controllers/product-controller";
 import { errorMiddleware } from "./6-middleware/error-middleware";
 
 class App {
 
-    public server: Express; // Make server public for the testing.
+    public server?: Express; // Make server public for the testing.
 
     public start(): void {
 
@@ -19,7 +19,7 @@ class App {
         this.server.use(express.json());
 
         // Connect controllers to the server:
-        this.server.use("/api", dataController.router);
+        this.server.use("/api", productController.router);
 
         // Register route not found middleware: 
         this.server.use("*", errorMiddleware.routeNotFound);
