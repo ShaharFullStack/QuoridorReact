@@ -2,7 +2,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem 1.5rem; /* Using rem for scalability */
+    padding: 5rem 1.5rem; /* Using rem for scalability */
     background: rgba(29, 78, 216, 0.85); /* A solid color with opacity for the glass effect */
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px); /* For Safari */

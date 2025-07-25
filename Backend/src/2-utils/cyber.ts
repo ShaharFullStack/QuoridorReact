@@ -8,16 +8,18 @@ class Cyber {
 
     public hash(plainText: string): string {
 
-        if (!plainText) return null;
+        if (!plainText) return "";
 
         // Hashing with salt: 
-        return crypto.createHmac("sha512", appConfig.hashingSalt).update(plainText).digest("hex");
+        return crypto.createHmac("sha512", appConfig.hashingSalt ?? "default_salt").update(plainText).digest("hex");
     }
 
     public getNewToken(user: UserModel): string {
 
         // Remove password: 
-        delete user.password;
+        if (user.password !== undefined) {
+            delete user.password;
+        }
 
         // Create payload to save inside the token:
         const payload = { user };
@@ -26,7 +28,7 @@ class Cyber {
         const options: SignOptions = { expiresIn: "3h" };
 
         // Create token: 
-        const token = jwt.sign(payload, appConfig.jwtSecret, options);
+        const token = jwt.sign(payload, appConfig.jwtSecret ?? "default_jwt_secret", options);
 
         // Return: 
         return token;
@@ -35,7 +37,7 @@ class Cyber {
     public validateToken(token: string): boolean {
         try {
             if (!token) return false;
-            jwt.verify(token, appConfig.jwtSecret);
+            jwt.verify(token, appConfig.jwtSecret ?? "default_jwt_secret");
             return true;
         }
         catch (err: any) {

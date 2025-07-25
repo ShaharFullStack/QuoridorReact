@@ -9,30 +9,24 @@ class SecurityMiddleware {
     public validateToken(request: Request, response: Response, next: NextFunction): void {
 
         const header = request.headers.authorization;
-
         // "Bearer the-token..."
         //  01234567
-        const token = header?.substring(7);
-
+        const token = header?.substring(7) ?? "";
         if (!cyber.validateToken(token)) {
             next(new UnauthorizedError("You are not logged-in."));
             return;
         }
-        
         next();
     }
 
     public validateAdmin(request: Request, response: Response, next: NextFunction): void {
 
         const header = request.headers.authorization;
-
-        const token = header?.substring(7);
-
+        const token = header?.substring(7) ?? "";
         if (!cyber.validateAdmin(token)) {
             next(new UnauthorizedError("You are not authorized."));
             return;
         }
-
         next();
     }
 
